@@ -17,8 +17,8 @@ project.
 
 The L5.lua file isn't included here. Sketches in this repo use a package path
 that expects L5 to be located at `../../L5/L5.lua`. That works if you git clone
-https://github.com/L5lua/L5.git and https://github.com/rainruse/rr-studio into
-the same parent directory. This avoids the potential versioning chaos of
+https://github.com/L5lua/L5.git and https://github.com/rainruse/rr-studio.git
+into the same parent directory. This avoids the potential versioning chaos of
 maintaining a copy of L5.lua for each sketch.
 
 I take a similar approach to fonts. Some of the sketches here use `io.open()`
