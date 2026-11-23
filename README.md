@@ -10,7 +10,7 @@ a project subfolder will contain a sketch or patch used in one of my videos.
 But, I may not link to the videos from here.
 
 TL;DR This is not "software". Rather it's fragmentary documentation of an art
-project.
+practice.
 
 
 ## L5 and Font Dependencies
