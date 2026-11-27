@@ -30,6 +30,18 @@ function setup()
     for port,name in rtmidi.outputPorts() do
         print(("  %d: %s"):format(port, name))
     end
+    rtmidi.openPortsContaining("Launchpad")
+end
+
+-- ==========================================================================
+
+local getMsg = rtmidi.getMessage
+function love.update(t)
+    for i=1,5 do
+        local msg = getMsg()
+        if msg then print("IN", table.concat(msg, ", "))
+        else break end
+    end
 end
 
 -- ==========================================================================

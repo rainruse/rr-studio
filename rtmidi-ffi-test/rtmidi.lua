@@ -32,6 +32,10 @@ int            rtmidi_out_send_message    (RtMidiOutPtr device, const unsigned c
 local Buf    = ffi.new("char[255]")
 local BufLen = ffi.new("int[1]", 255)
 
+-- C byte buffer for MIDI messages
+local Msg    = ffi.new("unsigned char[1024]")
+local MsgLen = ffi.new("size_t[1]", 1024)
+
 -- Private state vars
 local rtmidi, InDev, OutDev
 
@@ -74,6 +78,13 @@ local function portIterator(device)
     end
 end
 
+local function midiOpen(device, port, name, tag)
+    io.write(("Opening %s port %d: \"%s\"... "):format(tag, port, name))
+    rtmidi.rtmidi_open_port(device, port, "L5 love2d "..tag)
+    print(device.ok and "OK" or "ERROR")
+    return device.ok
+end
+
 local M = {}
 
 function M.version() return ffi.string(rtmidi.rtmidi_get_version()) end
@@ -81,5 +92,26 @@ function M.version() return ffi.string(rtmidi.rtmidi_get_version()) end
 function M.inputPorts() return portIterator(InDev) end
 
 function M.outputPorts() return portIterator(OutDev) end
+
+-- Open the lowest numbered input & ouput ports whose names contain pattern
+function M.openPortsContaining(pattern)
+    for port,name in portIterator(InDev) do
+        if name:find(pattern) then midiOpen(InDev, port, name, "IN") break end
+    end
+    for port,name in portIterator(OutDev) do
+        if name:find(pattern) then midiOpen(OutDev, port, name, "OUT") break end
+    end
+end
+
+function M.getMessage()
+    MsgLen[0] = ffi.sizeof(Msg)
+    rtmidi.rtmidi_in_get_message(InDev, Msg, MsgLen)
+    if MsgLen[0] > 0 then
+        local m = {}
+        for i=1,tonumber(MsgLen[0]) do m[i]=Msg[i-1] end
+        return m
+    end
+    return nil
+end
 
 return M
