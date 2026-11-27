@@ -5,11 +5,10 @@ package.path = package.path .. ";" .. love.filesystem.getSource() .. "/../../L5/
 require("L5")
 local rtmidi = require("rtmidi")
 
-
 -- ==========================================================================
 
 function setup()
-    frameRate(30)
+    frameRate(60)
     -- Load font using io.open to get around löve's filesystem sandboxing.
     -- If you don't have the font file, text will use löve's default font.
     local path = os.getenv("HOME") .. "/.local/share/fonts/Grammish.ttf"
@@ -36,17 +35,20 @@ end
 -- ==========================================================================
 
 local getMsg = rtmidi.getMessage
-function love.update(t)
-    for i=1,5 do
-        local msg = getMsg()
-        if msg then print("IN", table.concat(msg, ", "))
-        else break end
+function love.update(dt)
+    for i=1,10 do
+        local cin,chan,num,val = getMsg(true)
+        if cin then print(cin,num,val) else break end
     end
 end
 
 -- ==========================================================================
 
+local skipDraw = true
 function draw()
+    -- Skip every other draw (60 fps update to poll midi, 30 fps for draw)
+    skipDraw = not skipDraw
+    if skipDraw then return end
     -- Clear screen to background color
     clear()
     background(0)

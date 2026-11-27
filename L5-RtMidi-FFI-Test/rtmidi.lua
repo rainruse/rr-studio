@@ -1,4 +1,8 @@
 local ffi = require("ffi")
+-- Use LuaJIT BitOp for bitwise operations, see https://bitop.luajit.org/api.html
+local bit = require("bit")
+local band,bor,lshift,rshift = bit.band,bit.bor,bit.lshift,bit.rshift
+
 
 ffi.cdef[[
 // C interface definitions copied from https://github.com/thestk/rtmidi/blob/master/rtmidi_c.h
@@ -103,13 +107,34 @@ function M.openPortsContaining(pattern)
     end
 end
 
-function M.getMessage()
+function M.getMessage(debug)
+    -- CRITICAL: Must set MsgLen[0] every time as rtmidi_in_get_message() uses
+    -- it both for input (buffer length) and output (size of copied message)
     MsgLen[0] = ffi.sizeof(Msg)
     rtmidi.rtmidi_in_get_message(InDev, Msg, MsgLen)
-    if MsgLen[0] > 0 then
-        local m = {}
-        for i=1,tonumber(MsgLen[0]) do m[i]=Msg[i-1] end
-        return m
+    local len = tonumber(MsgLen[0])
+    -- Filter out boring results (focus on note on/off, cc, pitch bend)
+    if len==0 then
+        -- message queue was empty
+        return nil
+    elseif len~=3 then
+        -- unexpected payload length (maybe SysEx?)
+        if debug then print(("MsgLen[0] = %d"):format(len)) end
+        return nil
+    end
+    -- Decode 3-byte payload according to status byte message type nibble.
+    -- RtMidi strips the USB MIDI packet header byte, so there's no CN nibble.
+    -- Technically, the upper status byte nibble is the MIDI message type.
+    -- Message type is subtly different from CIN. But, they usually have the
+    -- same value and CIN is shorter. So, whatever. I'm calling it CIN.
+    local cin,ch = band(Msg[0],0xf0),band(Msg[0],0x0f)
+    local num,val = tonumber(Msg[1]),tonumber(Msg[2])
+    if     cin==0x90 then return "on",ch,num,val   -- Note On
+    elseif cin==0x80 then return "off",ch,num,val  -- Note Off
+    elseif cin==0xb0 then return "cc",ch,num,val   -- Control Change
+    elseif cin==0xe0 then return "pb",ch,num,val   -- Pitch Bend
+    elseif debug then
+        print(("%02x %02x %02x %02x"):format(cin,chan,num,val))
     end
     return nil
 end
