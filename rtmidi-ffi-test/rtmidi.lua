@@ -13,50 +13,18 @@ struct RtMidiWrapper {
 typedef struct RtMidiWrapper* RtMidiPtr;
 typedef struct RtMidiWrapper* RtMidiInPtr;
 typedef struct RtMidiWrapper* RtMidiOutPtr;
-typedef enum RtMidiApi {
-    RTMIDI_API_UNSPECIFIED,
-    RTMIDI_API_MACOSX_CORE,
-    RTMIDI_API_LINUX_ALSA,
-    RTMIDI_API_UNIX_JACK,
-    RTMIDI_API_WINDOWS_MM,
-    RTMIDI_API_RTMIDI_DUMMY,
-    RTMIDI_API_WEB_MIDI_API,
-    RTMIDI_API_WINDOWS_UWP,
-    RTMIDI_API_ANDROID,
-    RTMIDI_API_WINDOWS_MIDI_SERVICES,
-    RTMIDI_API_NUM
-} RtMidiApi;
-typedef enum RtMidiErrorType {
-    RTMIDI_ERROR_WARNING,
-    RTMIDI_ERROR_DEBUG_WARNING,
-    RTMIDI_ERROR_UNSPECIFIED,
-    RTMIDI_ERROR_NO_DEVICES_FOUND,
-    RTMIDI_ERROR_INVALID_DEVICE,
-    RTMIDI_ERROR_MEMORY_ERROR,
-    RTMIDI_ERROR_INVALID_PARAMETER,
-    RTMIDI_ERROR_INVALID_USE,
-    RTMIDI_ERROR_DRIVER_ERROR,
-    RTMIDI_ERROR_SYSTEM_ERROR,
-    RTMIDI_ERROR_THREAD_ERROR,
-    RTMIDI_ERROR_DRIVER_NOT_INSTALLED
-} RtMidiErrorType;
-const char*    rtmidi_get_version();
-int            rtmidi_get_compiled_api    (RtMidiApi *apis, unsigned int apis_size);
+const char*    rtmidi_get_version         ();
 void           rtmidi_open_port           (RtMidiPtr device, unsigned int portNumber, const char *portName);
 void           rtmidi_open_virtual_port   (RtMidiPtr device, const char *portName);
 void           rtmidi_close_port          (RtMidiPtr device);
 unsigned int   rtmidi_get_port_count      (RtMidiPtr device);
 int            rtmidi_get_port_name       (RtMidiPtr device, unsigned int portNumber, char * bufOut, int * bufLen);
 RtMidiInPtr    rtmidi_in_create_default   (void);
-RtMidiInPtr    rtmidi_in_create           (RtMidiApi api, const char *clientName, unsigned int queueSizeLimit);
 void           rtmidi_in_free             (RtMidiInPtr device);
-RtMidiApi      rtmidi_in_get_current_api  (RtMidiPtr device);
 void           rtmidi_in_ignore_types     (RtMidiInPtr device, bool midiSysex, bool midiTime, bool midiSense);
 double         rtmidi_in_get_message      (RtMidiInPtr device, unsigned char *message, size_t *size);
 RtMidiOutPtr   rtmidi_out_create_default  (void);
-RtMidiOutPtr   rtmidi_out_create          (RtMidiApi api, const char *clientName);
 void           rtmidi_out_free            (RtMidiOutPtr device);
-RtMidiApi      rtmidi_out_get_current_api (RtMidiPtr device);
 int            rtmidi_out_send_message    (RtMidiOutPtr device, const unsigned char *message, int length);
 ]]
 
