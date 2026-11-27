@@ -22,15 +22,13 @@ function setup()
     background(0)
     -- Check RtMidi
     print("RtMidi version: " .. rtmidi.version())
-    local inCount = rtmidi.getPortCountIn()
-    local outCount = rtmidi.getPortCountOut()
-    print("RtMidi Input Ports (" .. inCount .. "):")
-    for i=1,inCount do
-        print("  " .. rtmidi.getPortNameIn(i))
+    print("RtMidi Input Ports:")
+    for port,name in rtmidi.inputPorts() do
+        print(("  %d: %s"):format(port, name))
     end
-    print("RtMidi Output Ports (" .. outCount .. "):")
-    for i=1,outCount do
-        print("  " .. rtmidi.getPortNameOut(i))
+    print("RtMidi Output Ports:")
+    for port,name in rtmidi.outputPorts() do
+        print(("  %d: %s"):format(port, name))
     end
 end
 

@@ -28,49 +28,58 @@ void           rtmidi_out_free            (RtMidiOutPtr device);
 int            rtmidi_out_send_message    (RtMidiOutPtr device, const unsigned char *message, int length);
 ]]
 
--- Tested only on Debian Trixie (`sudo apt install librtmidi7`).
--- This likely would need modification to work on Windows or macOS.
-local rtmidi = ffi.load("librtmidi.so.7")
-local InDev  = rtmidi.rtmidi_in_create_default()
-local OutDev = rtmidi.rtmidi_out_create_default()
+-- C string buffer for checking port names
 local Buf    = ffi.new("char[255]")
 local BufLen = ffi.new("int[1]", 255)
 
-local M = {}
+-- Private state vars
+local rtmidi, InDev, OutDev
 
-function M.version()
-    local cstr = rtmidi.rtmidi_get_version()
-    return cstr == nil and "NULL" or ffi.string(cstr)
+-- Load and initialize RtMidi library (meant for use with pcall).
+-- The ffi.load() is tested on Debian Trixie (`sudo apt install librtmidi7`).
+-- Load filename likely needs modification to work on Windows or macOS.
+function loadAndInit()
+    rtmidi = ffi.load("librtmidi.so.7")
+    InDev  = rtmidi.rtmidi_in_create_default()
+    OutDev = rtmidi.rtmidi_out_create_default()
+end
+local ok, result = pcall(loadAndInit)
+if ok then
+    -- Load OK: install midi device cleanup handler
+    -- CAUTION: this will break if main.lua defines its own love.quit()
+    local previousQuit = love.quit
+    function love.quit()
+        print("\nQUIT: Closing MIDI Devices...")
+        rtmidi.rtmidi_in_free(InDev)
+        rtmidi.rtmidi_out_free(OutDev)
+        -- Call previous quit function, if there was one
+        if previousQuit then return previousQuit() end
+    end
+else
+    -- Load FAIL: Likely an OS-specific issue with the filename for ffi.load()
+    print("RtMidi library load error:", result)
+    return nil
 end
 
-function M.getPortCountIn()  return rtmidi.rtmidi_get_port_count(InDev) end
-function M.getPortCountOut() return rtmidi.rtmidi_get_port_count(OutDev) end
-
--- RtMidi ports are C-style 0 indexed, but port argument here should be Lua-style 1-indexed
-function M.getPortNameIn(port)
-    if port<1 or port>M.getPortCountIn() then return "ERROR: port out of range" end
-    local len = rtmidi.rtmidi_get_port_name(InDev, port-1, Buf, BufLen)
-    return len>0 and ffi.string(Buf, math.min(len, 255)) or ""
-end
-
--- RtMidi ports are C-style 0 indexed, but port argument here should be Lua-style 1-indexed
-function M.getPortNameOut(port)
-    if port<1 or port>M.getPortCountOut() then return "ERROR: port out of range" end
-    local len = rtmidi.rtmidi_get_port_name(OutDev, port-1, Buf, BufLen)
-    return len>0 and ffi.string(Buf, math.min(len, 255)) or ""
-end
-
--- Install an automatic cleanup handler, chained to existing love.quit handler
--- see https://love2d.org/wiki/love.quit
-local previousQuit = love.quit
-function love.quit()
-    print("\nQUIT: Closing MIDI Devices...")
-    rtmidi.rtmidi_in_free(InDev)
-    rtmidi.rtmidi_out_free(OutDev)
-    -- Call previous quit function, if there was one
-    if previousQuit then
-        return previousQuit()
+local function portIterator(device)
+    local n = rtmidi.rtmidi_get_port_count(device)
+    local port = -1
+    return function()
+        port = port+1
+        if port<n then
+            local len = rtmidi.rtmidi_get_port_name(device, port, Buf, BufLen)
+            local name = len>0 and ffi.string(Buf, math.min(len, 255)) or ""
+            return port,name
+        end
     end
 end
+
+local M = {}
+
+function M.version() return ffi.string(rtmidi.rtmidi_get_version()) end
+
+function M.inputPorts() return portIterator(InDev) end
+
+function M.outputPorts() return portIterator(OutDev) end
 
 return M
