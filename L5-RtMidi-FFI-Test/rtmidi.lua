@@ -107,6 +107,34 @@ function M.openPortsContaining(pattern)
     end
 end
 
+local function validate(chan,num,val)
+    if not chan or chan<1 or chan>16 then error("chan out of range: "..tostring(chan)) end
+    if not num or num<0 or num>127 then error("num out of range: "..tostring(num)) end
+    if not val or val<0 or val>127 then error("val out of range: "..tostring(val)) end
+end
+
+-- Send note on using Lua-style 1-indexed channel numbers (1..16)
+function M.noteOn(ch,num,val)
+    validate(ch,num,val)
+    Msg[0],Msg[1],Msg[2] = bor(0x90,ch-1),num,val
+    rtmidi.rtmidi_out_send_message(OutDev, Msg, 3)
+end
+
+-- Send note off using Lua-style 1-indexed channel numbers (1..16)
+function M.noteOff(ch,num,val)
+    validate(ch,num,val)
+    Msg[0],Msg[1],Msg[2] = bor(0x80,ch-1),num,val
+    rtmidi.rtmidi_out_send_message(OutDev, Msg, 3)
+end
+
+-- Send CC using Lua-style 1-indexed channel numbers (1..16)
+function M.cc(ch,num,val)
+    validate(ch,num,val)
+    Msg[0],Msg[1],Msg[2] = bor(0xb0,ch-1),num,val
+    rtmidi.rtmidi_out_send_message(OutDev, Msg, 3)
+end
+
+-- Get MIDI message. Channels are returned with 1-based numbering (1-16).
 function M.getMessage(debug)
     -- CRITICAL: Must set MsgLen[0] every time as rtmidi_in_get_message() uses
     -- it both for input (buffer length) and output (size of copied message)
@@ -127,12 +155,12 @@ function M.getMessage(debug)
     -- Technically, the upper status byte nibble is the MIDI message type.
     -- Message type is subtly different from CIN. But, they usually have the
     -- same value and CIN is shorter. So, whatever. I'm calling it CIN.
-    local cin,ch = band(Msg[0],0xf0),band(Msg[0],0x0f)
+    local cin,chan = band(Msg[0],0xf0),band(Msg[0],0x0f)+1
     local num,val = tonumber(Msg[1]),tonumber(Msg[2])
-    if     cin==0x90 then return "on",ch,num,val   -- Note On
-    elseif cin==0x80 then return "off",ch,num,val  -- Note Off
-    elseif cin==0xb0 then return "cc",ch,num,val   -- Control Change
-    elseif cin==0xe0 then return "pb",ch,num,val   -- Pitch Bend
+    if     cin==0x90 then return "on",chan,num,val   -- Note On
+    elseif cin==0x80 then return "off",chan,num,val  -- Note Off
+    elseif cin==0xb0 then return "cc",chan,num,val   -- Control Change
+    elseif cin==0xe0 then return "pb",chan,num,val   -- Pitch Bend
     elseif debug then
         print(("%02x %02x %02x %02x"):format(cin,chan,num,val))
     end
